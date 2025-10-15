@@ -3,9 +3,9 @@ import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
-# ----------------------------------------
+# ---------------------------------------
 # Step 1. データの読み込みと前処理
-# ----------------------------------------
+# ---------------------------------------
 df = pd.read_csv("sample_demand_regression_data.csv")  # ← ファイル名を適宜変更
 df = df.rename(columns={
     "Q (millions)": "Q",
