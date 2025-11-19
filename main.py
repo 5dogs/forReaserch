@@ -43,16 +43,30 @@ def estimate_demand_function(df_log):
     print(model.summary())
     
     # 係数の取得
-    alpha = model.params['Δln(GDP)']      # 所得弾力性
-    beta = model.params['Δln(P)']         # 価格弾力性
-    gamma = model.params['Δln(Tax_rate)'] # 税率弾力性
-    const = model.params['const']         # 定数項
+    alpha = model.params['Δln(GDP)']      # 所得弾力性: GDPが1%増加したときのガソリン消費量の変化率
+    beta = model.params['Δln(P)']         # 価格弾力性: ガソリン価格が1%上昇したときの消費量の変化率
+    gamma = model.params['Δln(Tax_rate)'] # 税率弾力性: ガソリン税率が1%上昇したときの消費量の変化率
+    const = model.params['const']         # 定数項: 他の要因を除いた基礎的な需要変化率
     
     print(f"\n推定された係数:")
-    print(f"所得弾力性 (α): {alpha:.4f}")
-    print(f"価格弾力性 (β): {beta:.4f}")
-    print(f"税率弾力性 (γ): {gamma:.4f}")
-    print(f"定数項: {const:.4f}")
+    print(f"所得弾力性 (α): {alpha:.4f}  # GDPが1%増加→ガソリン消費量{alpha:.4f}%変化")
+    print(f"価格弾力性 (β): {beta:.4f}  # 価格が1%上昇→ガソリン消費量{beta:.4f}%変化")
+    print(f"税率弾力性 (γ): {gamma:.4f}  # 税率が1%上昇→ガソリン消費量{gamma:.4f}%変化")
+    print(f"定数項: {const:.4f}  # 他の要因を除いた基礎的な需要変化率")
+    
+    # 統計的有意性の確認
+    print(f"\n統計的有意性:")
+    print(f"R²: {model.rsquared:.4f}  # モデルが需要変化の{model.rsquared*100:.1f}%を説明")
+    print(f"調整済みR²: {model.rsquared_adj:.4f}  # 自由度調整後の説明力")
+    print(f"F統計量: {model.fvalue:.4f}  # モデル全体の有意性検定")
+    print(f"P値: {model.f_pvalue:.4f}  # モデル全体の有意性（<0.05で有意）")
+    
+    # 各係数の有意性
+    pvalues = model.pvalues
+    print(f"\n各係数の有意性:")
+    print(f"所得弾力性のP値: {pvalues['Δln(GDP)']:.4f}  # {'有意' if pvalues['Δln(GDP)'] < 0.05 else '非有意'}")
+    print(f"価格弾力性のP値: {pvalues['Δln(P)']:.4f}  # {'有意' if pvalues['Δln(P)'] < 0.05 else '非有意'}")
+    print(f"税率弾力性のP値: {pvalues['Δln(Tax_rate)']:.4f}  # {'有意' if pvalues['Δln(Tax_rate)'] < 0.05 else '非有意'}")
     
     return model, alpha, beta, gamma, const
 
@@ -93,32 +107,36 @@ def calculate_consumer_surplus(df, alpha, beta, gamma):
         p_prev = df.iloc[i-1]['P (yen/liter)']
         p_curr = df.iloc[i]['P (yen/liter)']
         
-        # 価格要因の寄与率を計算
+        # 価格要因の寄与率を計算（測定方法総論の手法）
         # Xt+1 = β(exp(lnPt+1－lnPt)－1)／(exp(lnQt+1－lnQt)－1)
+        # 価格変化が需要変化に占める割合を計算
         if q_curr != q_prev:
             price_contribution = beta * (np.exp(np.log(p_curr) - np.log(p_prev)) - 1) / (np.exp(np.log(q_curr) - np.log(q_prev)) - 1)
         else:
-            price_contribution = 0
+            price_contribution = 0  # 需要変化がない場合は0
         
         # 需要増加分のうち価格要因によって説明される部分
         # Yt+1 = Xt+1 × (Qt+1－Qt)
-        demand_change = q_curr - q_prev
-        price_effect = price_contribution * demand_change
+        # 価格要因による需要変化量を計算
+        demand_change = q_curr - q_prev  # 需要の絶対変化量（億リットル）
+        price_effect = price_contribution * demand_change  # 価格要因による需要変化量
         
         # 消費者余剰の増分となる台形の面積を計算
         # (Qt＋Qt＋Yt+1)×(Pt－Pt+1)×1/2
+        # 台形の上底+下底+価格効果 × 価格変化幅 × 1/2
         if p_prev != p_curr:
             cs_increase = (q_prev + q_curr + price_effect) * (p_prev - p_curr) * 0.5
         else:
-            cs_increase = 0
+            cs_increase = 0  # 価格変化がない場合は余剰変化なし
         
-        # 累積消費者余剰
+        # 累積消費者余剰の計算
         if i == 1:
-            cumulative_cs = cs_increase
+            cumulative_cs = cs_increase  # 最初の年はその年の増分のみ
         else:
-            cumulative_cs = results[-1]['Cumulative_CS'] + cs_increase
+            cumulative_cs = results[-1]['Cumulative_CS'] + cs_increase  # 前年までの累積+今年の増分
         
         # 価格弾力性を用いた近似計算（比較用）
+        # CS ≈ (ε / (1 + ε)) × P × Q の近似式
         cs_approximation = (epsilon / (1 + epsilon)) * p_curr * q_curr
         
         results.append({
@@ -148,13 +166,22 @@ def analyze_tax_impact(df, results):
     price_changes = results[results['P_curr'] != results['P_prev']].copy()
     
     if len(price_changes) > 0:
-        print(f"価格変化があった年数: {len(price_changes)}年")
-        print(f"平均価格変化率: {((price_changes['P_curr'] / price_changes['P_prev'] - 1) * 100).mean():.2f}%")
-        print(f"平均消費者余剰増分: {price_changes['CS_Increase'].mean():.2f}")
+        print(f"価格変化があった年数: {len(price_changes)}年  # 全{len(results)}年中{len(price_changes)}年で価格変化")
+        print(f"平均価格変化率: {((price_changes['P_curr'] / price_changes['P_prev'] - 1) * 100).mean():.2f}%  # 価格変化年の平均変化率")
+        print(f"平均消費者余剰増分: {price_changes['CS_Increase'].mean():.2f}  # 価格変化時の平均余剰変化")
         
         # 価格変化と消費者余剰の関係
         correlation = price_changes['P_curr'].corr(price_changes['CS_Increase'])
-        print(f"価格と消費者余剰増分の相関係数: {correlation:.4f}")
+        print(f"価格と消費者余剰増分の相関係数: {correlation:.4f}  # 価格と余剰の関係（-1に近いほど強い負の相関）")
+        
+        # 価格上昇と価格下落の分析
+        price_increase = price_changes[price_changes['P_curr'] > price_changes['P_prev']]
+        price_decrease = price_changes[price_changes['P_curr'] < price_changes['P_prev']]
+        
+        if len(price_increase) > 0:
+            print(f"価格上昇年: {len(price_increase)}年  # 平均余剰変化: {price_increase['CS_Increase'].mean():.2f}")
+        if len(price_decrease) > 0:
+            print(f"価格下落年: {len(price_decrease)}年  # 平均余剰変化: {price_decrease['CS_Increase'].mean():.2f}")
     
     return price_changes
 
@@ -248,16 +275,24 @@ def print_summary(results):
     print("="*60)
     
     print(f"分析期間: {results['Year'].min()}年 - {results['Year'].max()}年")
-    print(f"総消費者余剰増分: {results['CS_Increase'].sum():.2f}")
-    print(f"平均年間消費者余剰増分: {results['CS_Increase'].mean():.2f}")
-    print(f"最大消費者余剰増分: {results['CS_Increase'].max():.2f} ({results.loc[results['CS_Increase'].idxmax(), 'Year']}年)")
-    print(f"最小消費者余剰増分: {results['CS_Increase'].min():.2f} ({results.loc[results['CS_Increase'].idxmin(), 'Year']}年)")
+    print(f"総消費者余剰増分: {results['CS_Increase'].sum():.2f}  # 20年間の累積変化（負の値は余剰減少）")
+    print(f"平均年間消費者余剰増分: {results['CS_Increase'].mean():.2f}  # 年間平均変化量")
+    print(f"最大消費者余剰増分: {results['CS_Increase'].max():.2f} ({results.loc[results['CS_Increase'].idxmax(), 'Year']}年)  # 最大の余剰増加年")
+    print(f"最小消費者余剰増分: {results['CS_Increase'].min():.2f} ({results.loc[results['CS_Increase'].idxmin(), 'Year']}年)  # 最大の余剰減少年")
     
     # 価格変化の影響
     price_increase_years = results[results['P_curr'] > results['P_prev']]
     if len(price_increase_years) > 0:
-        print(f"\n価格上昇年数: {len(price_increase_years)}年")
-        print(f"価格上昇時の平均消費者余剰変化: {price_increase_years['CS_Increase'].mean():.2f}")
+        print(f"\n価格上昇年数: {len(price_increase_years)}年  # 全{len(results)}年中{len(price_increase_years)}年で価格上昇")
+        print(f"価格上昇時の平均消費者余剰変化: {price_increase_years['CS_Increase'].mean():.2f}  # 価格上昇時の平均余剰変化")
+        
+        # 価格上昇率の分析
+        price_increase_rate = ((price_increase_years['P_curr'] / price_increase_years['P_prev'] - 1) * 100).mean()
+        print(f"平均価格上昇率: {price_increase_rate:.2f}%  # 価格上昇年の平均上昇率")
+        
+        # 価格と余剰の関係
+        correlation = price_increase_years['P_curr'].corr(price_increase_years['CS_Increase'])
+        print(f"価格と余剰の相関係数: {correlation:.4f}  # 価格上昇と余剰変化の関係（負の値は価格上昇で余剰減少）")
 
 def main():
     """メイン実行関数"""
