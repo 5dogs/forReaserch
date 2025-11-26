@@ -44,6 +44,12 @@ df.loc[mask_q, 'ln_Q'] = np.log(df.loc[mask_q, 'Q (liters)'])
 mask_p = df['P (yen/liter)'].notna() & (df['P (yen/liter)'] > 0)
 df.loc[mask_p, 'ln_P'] = np.log(df.loc[mask_p, 'P (yen/liter)'])
 
+# P_relative（相対価格）の対数変換（存在する場合）
+if 'P_relative' in df.columns:
+    mask_p_rel = df['P_relative'].notna() & (df['P_relative'] > 0)
+    df.loc[mask_p_rel, 'ln_P_relative'] = np.log(df.loc[mask_p_rel, 'P_relative'])
+    print("相対価格の対数変換を追加しました")
+
 # GDP (trillion yen)の対数変換
 mask_gdp = df['GDP (trillion yen)'].notna() & (df['GDP (trillion yen)'] > 0)
 df.loc[mask_gdp, 'ln_GDP'] = np.log(df.loc[mask_gdp, 'GDP (trillion yen)'])

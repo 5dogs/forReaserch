@@ -10,9 +10,20 @@ df_main['Year'] = df_main['Year'].astype(str)
 
 print(f"既存データ: {len(df_main)}行")
 
-# 2. GDPデータを読み込む
-gdp_file = r"data/1994-2025_GDP四半期ごと/gaku-jg2522.csv"
-print(f"\n{gdp_file} を読み込み中...")
+# 2. GDPデータを読み込む（実質GDPを使用）
+# 実質原系列のファイルを優先、なければ元のファイルを使用
+gdp_file_real = r"data/1994-2025_GDP四半期ごと/自由帳 - 実質原系列1994-2025.csv"
+gdp_file_original = r"data/1994-2025_GDP四半期ごと/gaku-jg2522.csv"
+
+import os
+if os.path.exists(gdp_file_real):
+    gdp_file = gdp_file_real
+    print(f"\n実質GDPデータを読み込み中: {gdp_file}")
+    print("（実質原系列、2015年基準連鎖価格）")
+else:
+    gdp_file = gdp_file_original
+    print(f"\nGDPデータを読み込み中: {gdp_file}")
+    print("（実質原系列、2015年基準連鎖価格）")
 
 # 複数のエンコーディングとskiprowsの組み合わせを試す
 encodings = ['utf-8', 'shift-jis', 'cp932', 'latin-1']
