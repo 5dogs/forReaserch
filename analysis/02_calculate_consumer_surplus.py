@@ -21,12 +21,12 @@ print("="*60)
 print("消費者余剰の計算")
 print("="*60)
 
-# 1. 需要関数の推定結果を読み込む
+# 1. 需要関数の推定結果を読み込む（年次データ版）
 print("\n需要関数の推定結果を読み込み中...")
-coeff_file = f'{output_dir}/01_coefficients.json'
+coeff_file = f'{output_dir}/01_coefficients_annual_level_model.json'
 if not os.path.exists(coeff_file):
     print(f"エラー: {coeff_file} が見つかりません。")
-    print("先に 01_estimate_demand_function.py を実行してください。")
+    print("先に 01_estimate_demand_function_annual_level_model.py を実行してください。")
     exit(1)
 
 with open(coeff_file, 'r', encoding='utf-8') as f:
@@ -36,14 +36,16 @@ alpha = coefficients['alpha']
 beta = coefficients['beta']
 gamma = coefficients['gamma']
 
-print(f"使用する係数:")
+print(f"使用する係数（年次データ版）:")
 print(f"  所得弾力性 (α): {alpha:.6f}")
 print(f"  価格弾力性 (β): {beta:.6f}")
 print(f"  税率弾力性 (γ): {gamma:.6f}")
+print(f"  モデルタイプ: {coefficients.get('model_type', 'N/A')}")
+print(f"  R²: {coefficients.get('rsquared', 0):.4f}")
 
-# 2. 分析データを読み込む
+# 2. 分析データを読み込む（年次データ版）
 print("\n分析データを読み込み中...")
-data_file = f'{output_dir}/01_analysis_data.csv'
+data_file = f'{output_dir}/01_analysis_data_annual_level_model.csv'
 if not os.path.exists(data_file):
     print(f"エラー: {data_file} が見つかりません。")
     exit(1)
@@ -51,6 +53,7 @@ if not os.path.exists(data_file):
 df = pd.read_csv(data_file)
 print(f"データ期間: {df['Year'].min()} - {df['Year'].max()}")
 print(f"データ行数: {len(df)}行")
+print(f"データタイプ: 年次データ")
 
 # 3. 消費者余剰の計算（測定方法総論に基づく）
 print("\n消費者余剰を計算中...")

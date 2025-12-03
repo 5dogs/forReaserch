@@ -50,39 +50,39 @@ https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html
 
 ### メインスクリプト
 
-#### `main.py`
-**ガソリン税による消費者余剰分析（メインスクリプト）**
+#### `analysis/01_estimate_demand_function_annual_level_model.py`
+**需要関数の推定（年次データ・レベルモデル版）**
 
 - **主な処理フロー：**
-  1. データの読み込み（ガソリン消費量、価格、税率、GDP）
-  2. 需要関数の推定：`⊿lnQ = α×⊿lnGDP + β×⊿lnP + γ×⊿lnTax_rate + ε`
-  3. 消費者余剰の計算（測定方法総論に基づく台形近似）
-  4. 税制効果の分析と可視化
-  5. 結果の出力とCSV保存
+  1. 年次データの読み込み（`analysis/demand_regression_data_annual_log_transformed.csv`）
+  2. 需要関数の推定：`ln(Q) = C + α×ln(GDP) + β×ln(P_relative) + γ×ln(Tax_rate) + δ1×D2008 + δ2×D2020 + δ3×D2009 + ε`
+  3. 回帰分析結果の出力（R²=93.9%、先行研究の95%に近い）
 
 - **出力：**
-  - 回帰分析結果（弾力性の推定）
-  - 消費者余剰の年次変化
-  - 5つの分析グラフ
-  - `gasoline_consumer_surplus_analysis.csv`
+  - `analysis/results/01_coefficients_annual_level_model.json` - 係数と統計指標
+  - `analysis/results/01_analysis_data_annual_level_model.csv` - 分析用データ
+  - `analysis/results/01_demand_function_coefficients_annual_level_model.csv` - 係数結果
+
+#### `analysis/02_calculate_consumer_surplus.py`
+**消費者余剰の計算**
+
+- 測定方法総論に基づく台形近似による消費者余剰の計算
+- 出力：`analysis/results/02_consumer_surplus_results.csv`
+
+#### `analysis/03_visualize_results.py`
+**分析結果の可視化**
+
+- 5つの研究用グラフ（英語、PNG形式、300dpi）を作成
+- 出力：`analysis/figures/`に5つのグラフ
 
 ### データファイル
 
-- **`sample_demand_regression_data.csv`**: ガソリン税分析用データ（2004-2023年）
-  - Year（年）
-  - Q (liters)（ガソリン消費量、億リットル）
-  - P (yen/liter)（ガソリン価格、円/リットル）
-  - Tax_rate (%)（ガソリン税率、%）
-  - GDP (trillion yen)（GDP、兆円）
-
-### 補助ファイル
-
-- **`gdp_impact_analysis.py`**: GDP影響分析用スクリプト
-- **`test最小二乗法/`**: 最小二乗法の動作確認用テストコード
-- **`archive/`**: 古い分析ファイルのアーカイブ
-  - `main_at.py`: 旧版需要関数分析
-  - `main_cs.py`: 旧版消費者余剰分析
-  - `diff_output.csv`: 旧版差分データ
+- **`demand_regression_data_raw.csv`**: 元データ（四半期データ、2007Q1-2025Q1）
+  - Year, Quarter, Q (liters), P (yen/liter), Tax_rate (%), GDP (trillion yen)
+- **`demand_regression_data_annual.csv`**: 年次データ（2007-2025）
+  - 四半期データから集約した年次データ
+- **`analysis/demand_regression_data_annual_log_transformed.csv`**: 年次データの対数変換版
+  - 分析に使用する前処理済みデータ
 
 ### 参考資料
 
@@ -91,9 +91,10 @@ https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html
   - `測定方法_金融.text`: 金融分野での応用例
   - イメージ図ファイル: 消費者余剰の概念図
 
-### メモ
+### プロジェクトメモ
 
-- **`memo.text`**: プロジェクトの進捗と今後のタスク管理
+- **`project/学士論文メモ.text`**: 学士論文のメモ（最新結果含む）
+- **`project/学士論文目次.text`**: 論文の目次構成
 
 ## 📊 使用するデータ
 
@@ -126,15 +127,17 @@ https://www.esri.cao.go.jp/jp/sna/sokuhou/sokuhou_top.html
    - **理由**: 所得効果の測定に必要
    - **役割**: 経済成長が需要に与える影響を定量化
 
-### 需要関数の推定式
+### 需要関数の推定式（年次データ・レベルモデル版）
 
 ```
-⊿lnQ = α×⊿lnGDP + β×⊿lnP + γ×⊿lnTax_rate + ε
+ln(Q) = C + α×ln(GDP) + β×ln(P_relative) + γ×ln(Tax_rate) + δ1×D2008 + δ2×D2020 + δ3×D2009 + ε
 ```
 
-- **α**: 所得弾力性（GDPの影響）
-- **β**: 価格弾力性（価格の影響）
-- **γ**: 税率弾力性（税制の影響）
+- **α**: 所得弾力性（実質GDPの影響、α=0.962、p<0.001で有意）
+- **β**: 価格弾力性（相対価格の影響、β=3.212、p=0.054で10%水準で有意）
+- **γ**: 税率弾力性（税率の影響、γ=3.277、p=0.029で5%水準で有意）
+- **δ1, δ2, δ3**: ダミー変数（政策イベントの影響）
+- **R²=93.9%**: 先行研究の95%に近い説明力を達成
 
 ## 🔬 分析フローと結果解釈
 
@@ -340,22 +343,32 @@ pip install pandas numpy matplotlib statsmodels
 
 ### 実行方法
 
-#### ガソリン税による消費者余剰分析
+#### 1. 年次データの対数変換準備（初回のみ、またはrawデータ更新時）
 ```bash
-python main.py
+python scripts/data_preparation/07_prepare_annual_log_transformed_data.py
 ```
 
-#### 実行される関数の流れ
-1. **`main()`** - メイン実行関数
-2. **`load_data()`** - データ読み込み
-3. **`estimate_demand_function()`** - 需要関数推定
-4. **`calculate_consumer_surplus()`** - 消費者余剰計算
-5. **`analyze_tax_impact()`** - 税制効果分析
-6. **`print_summary()`** - 結果サマリー表示
-7. **`create_visualizations()`** - グラフ作成
+#### 2. 需要関数の推定（年次データ・レベルモデル版）
+```bash
+python analysis/01_estimate_demand_function_annual_level_model.py
+```
+
+#### 3. 消費者余剰の計算
+```bash
+python analysis/02_calculate_consumer_surplus.py
+```
+
+#### 4. 結果の可視化
+```bash
+python analysis/03_visualize_results.py
+```
 
 #### 出力ファイル
-- **`gasoline_consumer_surplus_analysis.csv`** - 詳細な分析結果
+- **`analysis/results/01_coefficients_annual_level_model.json`** - 係数と統計指標（R²=93.9%）
+- **`analysis/results/01_analysis_data_annual_level_model.csv`** - 分析用データ
+- **`analysis/results/01_demand_function_coefficients_annual_level_model.csv`** - 係数結果
+- **`analysis/results/02_consumer_surplus_results.csv`** - 消費者余剰計算結果
+- **`analysis/figures/`** - 5つの研究用グラフ（PNG形式）
 
 ## 🔬 研究検証プロセス
 
