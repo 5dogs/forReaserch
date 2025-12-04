@@ -284,42 +284,46 @@ plt.savefig(f'{figures_dir}/05_cpi_contribution_comparison.png', dpi=300, bbox_i
 print(f"    - 保存: {figures_dir}/05_cpi_contribution_comparison.png")
 plt.close()
 
-# グラフ3: 価格構成の内訳（積み上げ棒グラフ）+ 税額の推移を統合
+# グラフ3: 価格構成の内訳（積み上げ棒グラフ + 税額の折れ線を統合）
 print("  - グラフ3: 価格構成の内訳（税額の推移を統合）")
 plt.close('all')  # 前のグラフを閉じる
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+fig, ax1 = plt.subplots(figsize=(12, 6))
 
-# 上段: 積み上げ棒グラフ（価格構成）
-ax1.bar(years, df_annual['Price_Base'].values,
-       label='Base Price', color='#2E86AB', alpha=0.7)
+# 積み上げ棒グラフ（価格構成）
+# Base Priceを一番上に表示するため、順序を変更
 ax1.bar(years, df_annual['Gasoline_Tax_Amount'].values,
-       bottom=df_annual['Price_Base'].values,
        label='Gasoline Tax', color='#06A77D', alpha=0.7)
 ax1.bar(years, df_annual['Consumption_Tax_Amount'].values,
-       bottom=df_annual['Price_Base'].values + df_annual['Gasoline_Tax_Amount'].values,
+       bottom=df_annual['Gasoline_Tax_Amount'].values,
        label='Consumption Tax', color='#A23B72', alpha=0.7)
+ax1.bar(years, df_annual['Price_Base'].values,
+       bottom=df_annual['Gasoline_Tax_Amount'].values + df_annual['Consumption_Tax_Amount'].values,
+       label='Base Price', color='#2E86AB', alpha=0.7)
 
-ax1.set_xlabel('Year', fontweight='bold')
-ax1.set_ylabel('Price (yen/L)', fontweight='bold')
-ax1.set_title('Gasoline Price Composition (Base + Taxes)', fontweight='bold')
-ax1.legend(loc='best')
-ax1.grid(True, alpha=0.3, linestyle='--', axis='y')
-ax1.set_xlim(2006.5, 2025.5)
-
-# 下段: ガソリン税額の推移（固定されていることを可視化）
+# 右軸: ガソリン税額の折れ線（固定されていることを可視化）
+ax2 = ax1.twinx()
 ax2.plot(years, df_annual['Gasoline_Tax_Amount'].values,
-        label='Gasoline Tax Amount', linewidth=2, color='#06A77D', marker='o', markersize=4)
+         label='Gasoline Tax Amount (Fixed)', linewidth=3, color='#06A77D', 
+         marker='o', markersize=6, linestyle='--', alpha=0.9)
 
 # 2008年の暫定税率失効をマーク
 if 2008 in df_annual['Year'].values:
-    ax2.axvline(x=2008.5, color='red', linestyle='--', linewidth=1, alpha=0.7, label='2008 Temporary Tax Rate Expiration')
+    ax1.axvline(x=2008, color='red', linestyle='--', linewidth=1.5, alpha=0.7, 
+                label='2008 Temporary Tax Rate Expiration')
 
-ax2.set_xlabel('Year', fontweight='bold')
-ax2.set_ylabel('Tax Amount (yen/L)', fontweight='bold')
-ax2.set_title('Gasoline Tax Amount Trend (Fixed Tax Rate)', fontweight='bold')
-ax2.legend(loc='best')
-ax2.grid(True, alpha=0.3, linestyle='--')
-ax2.set_xlim(2007, 2025)
+ax1.set_xlabel('Year', fontweight='bold', fontsize=11)
+ax1.set_ylabel('Price (yen/L)', fontweight='bold', fontsize=11)
+ax2.set_ylabel('Tax Amount (yen/L)', fontweight='bold', fontsize=11, color='#06A77D')
+ax1.set_title('Gasoline Price Composition with Fixed Tax Amount Trend', fontweight='bold', fontsize=12)
+
+# 凡例を統合
+lines1, labels1 = ax1.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax1.legend(lines1 + lines2, labels1 + labels2, loc='best', fontsize=9)
+
+ax1.grid(True, alpha=0.3, linestyle='--', axis='y')
+ax1.set_xlim(2006.5, 2025.5)
+ax2.tick_params(axis='y', labelcolor='#06A77D')
 
 plt.tight_layout()
 plt.savefig(f'{figures_dir}/06_gasoline_price_composition.png', dpi=300, bbox_inches='tight')
