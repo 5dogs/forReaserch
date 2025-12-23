@@ -92,23 +92,45 @@ print(f"分析期間: {df_analysis['Year'].min()} - {df_analysis['Year'].max()}"
 # Graph 1: 需要関数の推定結果（係数の可視化）
 # ============================================================================
 print("\nCreating Graph 1: Demand Function Coefficients...")
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = plt.subplots(figsize=(12, 6))
 
+# 弾力性係数
 coeff_names = ['Income\nElasticity (α)', 'Price\nElasticity (β)', 'Tax Rate\nElasticity (γ)']
 coeff_values = [coefficients['alpha'], coefficients['beta'], coefficients['gamma']]
 colors = ['#2E86AB', '#A23B72', '#06A77D']
 
-bars = ax.bar(coeff_names, coeff_values, color=colors, alpha=0.7, edgecolor='black', linewidth=1)
+# ダミー変数の係数（2008→2009→2020の順）
+dummy_names = []
+dummy_values = []
+dummy_colors = []
+dummy_labels = {'D2008': 'δ₁ (D2008)', 'D2009': 'δ₂ (D2009)', 'D2020': 'δ₃ (D2020)'}
+dummy_color_map = {'D2008': '#F18F01', 'D2009': '#C73E1D', 'D2020': '#6A994E'}
+
+# 順番を2008→2009→2020に統一
+dummy_order = ['D2008', 'D2009', 'D2020']
+if 'dummy_variables' in coefficients:
+    for dummy_var in dummy_order:
+        if dummy_var in coefficients['dummy_variables']:
+            dummy_names.append(dummy_labels[dummy_var])
+            dummy_values.append(coefficients['dummy_variables'][dummy_var])
+            dummy_colors.append(dummy_color_map[dummy_var])
+
+# すべての係数を結合
+all_names = coeff_names + dummy_names
+all_values = coeff_values + dummy_values
+all_colors = colors + dummy_colors
+
+bars = ax.bar(all_names, all_values, color=all_colors, alpha=0.7, edgecolor='black', linewidth=1)
 
 # 値をバーの上に表示
-for bar, val in zip(bars, coeff_values):
+for bar, val in zip(bars, all_values):
     height = bar.get_height()
     ax.text(bar.get_x() + bar.get_width()/2., height,
             f'{val:.4f}',
-            ha='center', va='bottom' if height > 0 else 'top', fontweight='bold')
+            ha='center', va='bottom' if height > 0 else 'top', fontweight='bold', fontsize=8)
 
 ax.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
-ax.set_ylabel('Elasticity', fontweight='bold')
+ax.set_ylabel('Coefficient Value', fontweight='bold')
 ax.set_title('Estimated Demand Function Coefficients', fontweight='bold')
 ax.grid(True, alpha=0.3, linestyle='--', axis='y')
 plt.tight_layout()
