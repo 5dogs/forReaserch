@@ -84,8 +84,16 @@ df_complete = df[
     df['ln_Tax_rate'].notna()
 ].copy()
 
+# 2025年の異常値を除外（GDPが異常に小さいため）
 print(f"\n全変数が揃っているデータ: {len(df_complete)}行")
 print(f"期間: {df_complete['Year'].min()} - {df_complete['Year'].max()}")
+
+# 2025年を除外（異常値のため）
+if '2025' in df_complete['Year'].values:
+    print(f"\n注意: 2025年のデータを除外します（GDPが異常に小さいため）")
+    df_complete = df_complete[df_complete['Year'] != '2025'].copy()
+    print(f"除外後のデータ: {len(df_complete)}行")
+    print(f"期間: {df_complete['Year'].min()} - {df_complete['Year'].max()}")
 
 if len(df_complete) < 10:
     print("警告: 分析可能なデータが少なすぎます（最低10行必要）")
