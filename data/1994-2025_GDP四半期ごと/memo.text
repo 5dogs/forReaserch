@@ -1,0 +1,10 @@
+https://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2001/qe011/gdemenuja.html
+→四半期＞名目原系列
+
+https://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/files_sokuhou.html
+で統計表（四半期別GDP速報）を取得する
+https://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2025/qe252_2/gdemenuja.html
+＞＞
+実質原系列（CSV形式：29KB）
+が、
+data\1995-2002_GDP四半期ごと\gaku_mg01168_1.csv
