@@ -62,6 +62,24 @@ print(f"データタイプ: 年次データ")
 print("\n消費者余剰を計算中...")
 results = []
 
+# 2007年を基準（0）として追加
+first_year = df.iloc[0]['Year']
+first_q = df.iloc[0]['Q (liters)']
+first_p = df.iloc[0]['P (yen/liter)']
+results.append({
+    'Year': first_year,
+    'Q_prev': first_q,
+    'Q_curr': first_q,
+    'P_prev': first_p,
+    'P_curr': first_p,
+    'Price_Contribution': 0.0,
+    'Price_Effect': 0.0,
+    'CS_Increase': 0.0,
+    'Cumulative_CS': 0.0,
+    'ΔQ': 0.0,
+    'ΔP': 0.0
+})
+
 for i in range(1, len(df)):  # 最初の行は除外（前年比のため）
     year = df.iloc[i]['Year']
     q_prev = df.iloc[i-1]['Q (liters)']
@@ -94,11 +112,8 @@ for i in range(1, len(df)):  # 最初の行は除外（前年比のため）
     else:
         cs_increase = 0
     
-    # 累積消費者余剰の計算
-    if i == 1:
-        cumulative_cs = cs_increase
-    else:
-        cumulative_cs = results[-1]['Cumulative_CS'] + cs_increase
+    # 累積消費者余剰の計算（2007年を基準として累積）
+    cumulative_cs = results[-1]['Cumulative_CS'] + cs_increase
     
     results.append({
         'Year': year,
